@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String?
+  email        String   @unique
+  passwordHash String
+  roles        String[] @default([])
+  createdAt    DateTime @default(now())
+  accounts     Account[]
+  posts        Post[]
+}
+
+model Account {
+  id           String   @id @default(cuid())
+  user         User     @relation(fields: [userId], references: [id])
+  userId       String
+  provider     String
+  accessToken  String
+  refreshToken String?
+  expiresAt    DateTime?
+  externalId   String?
+  createdAt    DateTime @default(now())
+}
+
+model Post {
+  id           String   @id @default(cuid())
+  user         User     @relation(fields: [userId], references: [id])
+  userId       String
+  content      String?
+  mediaUrls    String[] @default([])
+  networks     String[]
+  scheduledAt  DateTime
+  status       String   @default("pending")
+  errorMessage String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  publishes    PostPublish[]
+}
+
+model PostPublish {
+  id             String   @id @default(cuid())
+  post           Post     @relation(fields: [postId], references: [id])
+  postId         String
+  provider       String
+  status         String   @default("pending")
+  publishedAt    DateTime?
+  providerPostId String?
+  errorMessage   String?
+}
+
+model EngagementSnapshot {
+  id        String   @id @default(cuid())
+  accountId String?
+  postId    String?
+  provider  String
+  likes     Int      @default(0)
+  comments  Int      @default(0)
+  shares    Int      @default(0)
+  reach     Int      @default(0)
+  capturedAt DateTime @default(now())
+}
+
+model Report {
+  id         String   @id @default(cuid())
+  userId     String
+  periodStart DateTime
+  periodEnd   DateTime
+  scope      String
+  jsonBlob   Json?
+  pdfUrl     String?
+  createdAt  DateTime @default(now())
+}
+
+model WebhookEvent {
+  id          String   @id @default(cuid())
+  provider    String
+  payload     Json
+  receivedAt  DateTime @default(now())
+  processedAt DateTime?
+  status      String   @default("pending")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  status    String   @default("queued")
+  sentAt    DateTime?
+  payload   Json?
+}
