@@ -120,4 +120,50 @@ export class PostsService {
       },
     });
   }
+
+  async cancel(email: string, id: string) {
+    const user = await this.getUserByEmail(email);
+    const post = await this.prisma.post.findFirst({ where: { id, userId: user.id } });
+    if (!post) throw new NotFoundException('Post não encontrado');
+    if (post.status !== 'pending') throw new ForbiddenException('Somente posts pendentes podem ser cancelados');
+
+    await this.prisma.$transaction([
+      this.prisma.post.update({ where: { id }, data: { status: 'canceled' } }),
+      this.prisma.postPublish.updateMany({ where: { postId: id, status: 'pending' }, data: { status: 'canceled' } }),
+    ]);
+    return { canceled: true };
+  }
+
+  async publishNow(email: string, id: string) {
+    const user = await this.getUserByEmail(email);
+    const post = await this.prisma.post.findFirst({ where: { id, userId: user.id } });
+    if (!post) throw new NotFoundException('Post não encontrado');
+    if (post.status !== 'pending') throw new ForbiddenException('Somente posts pendentes podem ser publicados agora');
+
+    // Atualizar scheduledAt para agora (opcional)
+    await this.prisma.post.update({ where: { id }, data: { scheduledAt: new Date() } });
+
+    const publishes = await this.prisma.postPublish.findMany({ where: { postId: id, status: 'pending' } });
+    for (const p of publishes) {
+      await this.queue.addPublishJob(id, p.provider, 0);
+    }
+    return { enqueued: publishes.map((p) => p.provider) };
+  }
+
+  async retryPublish(email: string, id: string, publishId: string) {
+    const user = await this.getUserByEmail(email);
+    const post = await this.prisma.post.findFirst({ where: { id, userId: user.id } });
+    if (!post) throw new NotFoundException('Post não encontrado');
+
+    const publish = await this.prisma.postPublish.findFirst({ where: { id: publishId, postId: id } });
+    if (!publish) throw new NotFoundException('Publish não encontrado');
+    if (!['error', 'pending'].includes(publish.status)) {
+      throw new ForbiddenException('Somente publishes em erro ou pendentes podem ser reenviadas');
+    }
+
+    await this.prisma.post.update({ where: { id }, data: { status: 'pending', errorMessage: null } });
+    await this.prisma.postPublish.update({ where: { id: publishId }, data: { status: 'pending', errorMessage: null } });
+    await this.queue.addPublishJob(id, publish.provider, 0);
+    return { retried: publishId };
+  }
 }
