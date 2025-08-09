@@ -1,6 +1,7 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { Queue, Worker, JobsOptions, Job } from 'bullmq';
 import IORedis from 'ioredis';
+import { PrismaService } from '../prisma/prisma.service';
 
 const QUEUE_NAME = 'publish-posts';
 
@@ -10,7 +11,7 @@ export class QueueService implements OnModuleDestroy {
   readonly queue: Queue;
   private worker?: Worker;
 
-  constructor() {
+  constructor(private readonly prisma: PrismaService) {
     const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
     this.connection = new IORedis(redisUrl, {
       // BullMQ workers require disabling request retry logic
@@ -23,9 +24,31 @@ export class QueueService implements OnModuleDestroy {
     this.worker = new Worker(
       QUEUE_NAME,
       async (job: Job) => {
-        // No futuro: publicar por provedor. Por ora, apenas loga.
+        const { postId, provider } = job.data as { postId: string; provider: string };
         // eslint-disable-next-line no-console
-        console.log('Processing job', job.id, job.name, job.data);
+        console.log('Processing job', job.id, provider, postId);
+
+        try {
+          // TODO: executar publicação real no provider.
+          // Sucesso simulado: marcar publish como 'published'
+          await this.prisma.postPublish.updateMany({
+            where: { postId, provider },
+            data: { status: 'published', publishedAt: new Date(), errorMessage: null },
+          });
+
+          // Se todas as publishes concluídas (sem pendentes), marcar post como 'published'
+          const remaining = await this.prisma.postPublish.count({ where: { postId, status: 'pending' } });
+          if (remaining === 0) {
+            await this.prisma.post.update({ where: { id: postId }, data: { status: 'published', errorMessage: null } });
+          }
+        } catch (err: any) {
+          const message = err?.message || 'Erro ao publicar';
+          await this.prisma.postPublish.updateMany({
+            where: { postId, provider },
+            data: { status: 'error', errorMessage: message },
+          });
+          await this.prisma.post.update({ where: { id: postId }, data: { status: 'error', errorMessage: message } });
+        }
       },
       { connection: this.connection },
     );
