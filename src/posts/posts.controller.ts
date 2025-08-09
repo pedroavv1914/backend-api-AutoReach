@@ -39,4 +39,9 @@ export class PostsController {
   remove(@Req() req: any, @Param('id') id: string) {
     return this.postsService.remove(req.user.email, id);
   }
+
+  @Get(':id/publishes')
+  publishes(@Req() req: any, @Param('id') id: string) {
+    return this.postsService.publishes(req.user.email, id);
+  }
 }
