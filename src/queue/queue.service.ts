@@ -12,7 +12,11 @@ export class QueueService implements OnModuleDestroy {
 
   constructor() {
     const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-    this.connection = new IORedis(redisUrl);
+    this.connection = new IORedis(redisUrl, {
+      // BullMQ workers require disabling request retry logic
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+    } as any);
     this.queue = new Queue(QUEUE_NAME, { connection: this.connection });
 
     // Worker de exemplo que apenas marca como "processado"
