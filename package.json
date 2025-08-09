@@ -1,0 +1,37 @@
+{
+  "name": "automacao-redes-sociais-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "node dist/main.js",
+    "build": "nest build",
+    "dev": "nest start --watch",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@nestjs/common": "^10.4.7",
+    "@nestjs/core": "^10.4.7",
+    "@nestjs/platform-express": "^10.4.7",
+    "@prisma/client": "^5.18.0",
+    "dotenv": "^16.4.5",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^10.4.5",
+    "@nestjs/schematics": "^10.1.2",
+    "@nestjs/testing": "^10.4.7",
+    "@types/node": "^20.14.11",
+    "eslint": "^8.57.0",
+    "prettier": "^3.3.3",
+    "prisma": "^5.18.0",
+    "ts-node": "^10.9.2",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.5.4"
+  }
+}
