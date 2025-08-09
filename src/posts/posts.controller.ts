@@ -44,4 +44,19 @@ export class PostsController {
   publishes(@Req() req: any, @Param('id') id: string) {
     return this.postsService.publishes(req.user.email, id);
   }
+
+  @HttpPost(':id/cancel')
+  cancel(@Req() req: any, @Param('id') id: string) {
+    return this.postsService.cancel(req.user.email, id);
+  }
+
+  @HttpPost(':id/publish-now')
+  publishNow(@Req() req: any, @Param('id') id: string) {
+    return this.postsService.publishNow(req.user.email, id);
+  }
+
+  @HttpPost(':id/publishes/:publishId/retry')
+  retry(@Req() req: any, @Param('id') id: string, @Param('publishId') publishId: string) {
+    return this.postsService.retryPublish(req.user.email, id, publishId);
+  }
 }
