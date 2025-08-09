@@ -29,6 +29,23 @@ export class QueueService implements OnModuleDestroy {
         console.log('Processing job', job.id, provider, postId);
 
         try {
+          // Verificar se o post/publicação ainda está pendente
+          const [post, publish] = await Promise.all([
+            this.prisma.post.findUnique({ where: { id: postId } }),
+            this.prisma.postPublish.findFirst({ where: { postId, provider } }),
+          ]);
+          if (!post || !publish) return;
+          if (post.status !== 'pending') {
+            // eslint-disable-next-line no-console
+            console.log('Skipping job: post not pending', post.status);
+            return;
+          }
+          if (publish.status !== 'pending') {
+            // eslint-disable-next-line no-console
+            console.log('Skipping job: publish not pending', publish.status);
+            return;
+          }
+
           // TODO: executar publicação real no provider.
           // Sucesso simulado: marcar publish como 'published'
           await this.prisma.postPublish.updateMany({
@@ -55,7 +72,17 @@ export class QueueService implements OnModuleDestroy {
   }
 
   async add(name: string, data: any, opts?: JobsOptions) {
-    return this.queue.add(name, data, opts);
+    const defaults: JobsOptions = {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 5000 },
+      removeOnComplete: 1000,
+      removeOnFail: 1000,
+    };
+    return this.queue.add(name, data, { ...defaults, ...(opts || {}) });
+  }
+
+  async addPublishJob(postId: string, provider: string, delayMs = 0) {
+    return this.add('publish', { postId, provider }, { delay: Math.max(0, delayMs) });
   }
 
   async onModuleDestroy() {
