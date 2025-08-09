@@ -101,4 +101,23 @@ export class PostsService {
     await this.prisma.post.delete({ where: { id } });
     return { deleted: true };
   }
+
+  async publishes(email: string, id: string) {
+    const user = await this.getUserByEmail(email);
+    const post = await this.prisma.post.findFirst({ where: { id, userId: user.id } });
+    if (!post) throw new NotFoundException('Post não encontrado');
+
+    return this.prisma.postPublish.findMany({
+      where: { postId: id },
+      orderBy: { provider: 'asc' },
+      select: {
+        id: true,
+        provider: true,
+        status: true,
+        publishedAt: true,
+        providerPostId: true,
+        errorMessage: true,
+      },
+    });
+  }
 }
