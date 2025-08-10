@@ -55,7 +55,7 @@ export class OAuthService {
   }
 
   async handleCallback(
-    email: string,
+    email: string | undefined,
     provider: string,
     params: { code?: string; state?: string; accessToken?: string; refreshToken?: string; externalId?: string },
   ) {
@@ -66,7 +66,8 @@ export class OAuthService {
       this.states.delete(params.state!);
       throw new BadRequestException('State expirado');
     }
-    if (rec.email !== email || rec.provider !== provider) {
+    const effectiveEmail = email || rec.email; // permite callback público sem JWT
+    if (rec.email !== effectiveEmail || rec.provider !== provider) {
       throw new BadRequestException('State não corresponde ao contexto');
     }
 
@@ -108,7 +109,7 @@ export class OAuthService {
     this.states.delete(params.state!);
 
     // Criar/atualizar conta
-    const saved = await this.accounts.connect(email, {
+    const saved = await this.accounts.connect(effectiveEmail, {
       provider,
       accessToken: accessToken || `dummy_access_${provider}_${Date.now()}`,
       refreshToken,
