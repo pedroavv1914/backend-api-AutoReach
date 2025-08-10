@@ -2,12 +2,12 @@ import { Controller, Get, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { OAuthService } from './oauth.service';
 
-@UseGuards(JwtAuthGuard)
 @Controller('oauth')
 export class OAuthController {
   constructor(private readonly oauth: OAuthService) {}
 
   @Get(':provider/start')
+  @UseGuards(JwtAuthGuard)
   async start(@Req() req: any, @Param('provider') provider: string, @Query('redirectUri') redirectUri?: string) {
     const state = await this.oauth.issueState(req.user.email, provider, redirectUri);
     const authUrl = this.oauth.buildAuthUrl(provider, state, redirectUri);
@@ -25,6 +25,7 @@ export class OAuthController {
     @Query('refresh_token') refreshToken?: string,
     @Query('external_id') externalId?: string,
   ) {
-    return this.oauth.handleCallback(req.user.email, provider, { code, state, accessToken, refreshToken, externalId });
+    // email virá do state salvo no serviço (não requer JWT aqui)
+    return this.oauth.handleCallback(undefined as any, provider, { code, state, accessToken, refreshToken, externalId });
   }
 }
