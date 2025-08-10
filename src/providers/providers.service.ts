@@ -21,7 +21,21 @@ export class ProvidersService {
     if (!account) throw new Error('Conta não encontrada');
 
     if (provider === 'twitter') {
-      // Publica texto simples (por ora). Para mídias, seria necessário upload prévio.
+      const consumerKey = process.env.TWITTER_API_KEY;
+      const consumerSecret = process.env.TWITTER_API_SECRET;
+      // Se tivermos consumer keys e a conta possuir tokenSecret (usaremos refreshToken como tokenSecret), faz OAuth 1.0a
+      if (consumerKey && consumerSecret && account.accessToken && account.refreshToken) {
+        const id = await this.twitter.postTweetOAuth1({
+          consumerKey,
+          consumerSecret,
+          token: account.accessToken,
+          tokenSecret: account.refreshToken,
+          text: content,
+        });
+        return { providerPostId: id || `twitter_${accountId.slice(-6)}_${Date.now()}` };
+      }
+
+      // Caso contrário, tenta OAuth 2.0 (Bearer)
       const id = await this.twitter.postTweet(account.accessToken, content);
       return { providerPostId: id || `twitter_${accountId.slice(-6)}_${Date.now()}` };
     }
