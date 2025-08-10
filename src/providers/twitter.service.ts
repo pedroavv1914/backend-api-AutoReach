@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
-import crypto from 'crypto';
 // oauth-1.0a usa CommonJS; a importação via default pode quebrar em TS
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const OAuth = require('oauth-1.0a');
+import * as crypto from 'crypto';
 
 @Injectable()
 export class TwitterService {
