@@ -2,6 +2,7 @@ import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { Queue, Worker, JobsOptions, Job } from 'bullmq';
 import IORedis from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
+import { ProvidersService, ProviderName } from '../providers/providers.service';
 
 const QUEUE_NAME = 'publish-posts';
 
@@ -11,7 +12,7 @@ export class QueueService implements OnModuleDestroy {
   readonly queue: Queue;
   private worker?: Worker;
 
-  constructor(private readonly prisma: PrismaService) {
+  constructor(private readonly prisma: PrismaService, private readonly providers: ProvidersService) {
     const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
     this.connection = new IORedis(redisUrl, {
       // BullMQ workers require disabling request retry logic
@@ -58,11 +59,16 @@ export class QueueService implements OnModuleDestroy {
             return;
           }
 
-          // TODO: executar publicação real no provider.
-          // Sucesso simulado: marcar publish como 'published'
-          await this.prisma.postPublish.updateMany({
-            where: { postId, provider },
-            data: { status: 'published', publishedAt: new Date(), errorMessage: null },
+          // Publicação real (abstraída pelo ProvidersService)
+          const result = await this.providers.publish({
+            provider: provider as ProviderName,
+            accountId: account.id,
+            content: post.content ?? '',
+            mediaUrls: post.mediaUrls as any,
+          });
+          await this.prisma.postPublish.update({
+            where: { id: publish.id },
+            data: { status: 'published', publishedAt: new Date(), errorMessage: null, providerPostId: result.providerPostId },
           });
 
           // Se todas as publishes concluídas (sem pendentes), marcar post como 'published'
