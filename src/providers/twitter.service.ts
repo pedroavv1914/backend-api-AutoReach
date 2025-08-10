@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
-import OAuth from 'oauth-1.0a';
 import crypto from 'crypto';
+// oauth-1.0a usa CommonJS; a importação via default pode quebrar em TS
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const OAuth = require('oauth-1.0a');
 
 @Injectable()
 export class TwitterService {
@@ -40,7 +42,7 @@ export class TwitterService {
     const oauth = new OAuth({
       consumer: { key: consumerKey, secret: consumerSecret },
       signature_method: 'HMAC-SHA1',
-      hash_function(baseString, key) {
+      hash_function(baseString: string, key: string) {
         return crypto.createHmac('sha1', key).update(baseString).digest('base64');
       },
     });
