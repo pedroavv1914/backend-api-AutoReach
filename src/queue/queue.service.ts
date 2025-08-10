@@ -46,6 +46,18 @@ export class QueueService implements OnModuleDestroy {
             return;
           }
 
+          // Verificar se existe conta vinculada para esse provider
+          const account = await this.prisma.account.findFirst({ where: { userId: post.userId, provider } });
+          if (!account) {
+            await this.prisma.postPublish.updateMany({
+              where: { postId, provider },
+              data: { status: 'error', errorMessage: 'Conta não vinculada para o provedor' },
+            });
+            // Forçar roll-up para erro
+            await this.prisma.post.update({ where: { id: postId }, data: { status: 'error', errorMessage: 'Conta não vinculada' } });
+            return;
+          }
+
           // TODO: executar publicação real no provider.
           // Sucesso simulado: marcar publish como 'published'
           await this.prisma.postPublish.updateMany({
