@@ -29,6 +29,36 @@ export class TwitterService {
     }
   }
 
+  // Verifica credenciais OAuth 1.0a do usuário
+  async verifyCredentials(params: {
+    consumerKey: string;
+    consumerSecret: string;
+    token: string;
+    tokenSecret: string;
+  }) {
+    const { consumerKey, consumerSecret, token, tokenSecret } = params;
+    const oauth = new OAuth({
+      consumer: { key: consumerKey, secret: consumerSecret },
+      signature_method: 'HMAC-SHA1',
+      hash_function(baseString: string, key: string) {
+        return crypto.createHmac('sha1', key).update(baseString).digest('base64');
+      },
+    });
+    const verifyUrl = 'https://api.twitter.com/1.1/account/verify_credentials.json';
+    const reqVerify = { url: verifyUrl, method: 'GET' as const };
+    const authVerify = oauth.toHeader(
+      oauth.authorize(reqVerify, { key: token, secret: tokenSecret }),
+    );
+    try {
+      const res = await axios.get(verifyUrl, { headers: { ...authVerify } });
+      return res.data; // inclui id, screen_name, etc.
+    } catch (vErr: any) {
+      const vs = vErr?.response?.status;
+      const vd = vErr?.response?.data;
+      throw new Error(`twitter_oauth1_verify_error status=${vs} body=${JSON.stringify(vd)}`);
+    }
+  }
+
   // OAuth 1.0a user-context tweet
   async postTweetOAuth1(params: {
     consumerKey: string;
