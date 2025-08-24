@@ -1,44 +1,27 @@
-import { Controller, Get, Delete, Param } from '@nestjs/common';
-import { OAuthService } from '../auth/oauth.service';
+import { Controller, Get, Delete, Param, Req } from '@nestjs/common';
+import { Request } from 'express';
+import { TenantOAuthService } from '../auth/tenant-oauth.service';
 
 @Controller('accounts')
 export class AccountsController {
-  constructor(private readonly oauthService: OAuthService) {}
+  constructor(private readonly tenantOAuthService: TenantOAuthService) {}
 
   @Get()
-  async getConnectedAccounts() {
-    // Using mock user ID since auth is disabled
-    const mockUserId = 'mock-user-id';
-    const accounts = await this.oauthService.getConnectedAccounts(mockUserId);
-    
+  async getConnectedAccounts(@Req() req: Request) {
+    // TODO: Implement getConnectedAccounts in TenantOAuthService
     return {
       success: true,
-      data: accounts.map(account => ({
-        id: account.id,
-        provider: account.provider,
-        externalId: account.externalId,
-        status: 'connected',
-        connectedAt: account.createdAt,
-      })),
+      data: [],
+      message: 'Connected accounts feature needs to be implemented with tenant support',
     };
   }
 
   @Delete(':provider')
-  async disconnectAccount(@Param('provider') provider: string) {
-    // Using mock user ID since auth is disabled
-    const mockUserId = 'mock-user-id';
-    
-    try {
-      await this.oauthService.disconnectAccount(mockUserId, provider);
-      return {
-        success: true,
-        message: `${provider} account disconnected successfully`,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message || 'Failed to disconnect account',
-      };
-    }
+  async disconnectAccount(@Param('provider') provider: string, @Req() req: Request) {
+    // TODO: Implement disconnectAccount in TenantOAuthService
+    return {
+      success: false,
+      message: 'Disconnect account feature needs to be implemented with tenant support',
+    };
   }
 }
