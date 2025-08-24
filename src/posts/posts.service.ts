@@ -15,18 +15,21 @@ interface ListParams {
 export class PostsService {
   constructor(private prisma: PrismaService, private queue: QueueService) {}
 
-  async getUserByEmail(email: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
+  async getUserByEmail(email: string, tenantId: string) {
+    const user = await (this.prisma as any).user.findFirst({ 
+      where: { email, tenantId } 
+    });
     if (!user) throw new NotFoundException('Usuário não encontrado');
     return user;
   }
 
-  async create(email: string, dto: any) {
-    const user = await this.getUserByEmail(email);
+  async create(email: string, dto: any, tenantId: string) {
+    const user = await this.getUserByEmail(email, tenantId);
     const scheduledAt = new Date(dto.scheduledAt);
-    const post = await this.prisma.post.create({
+    const post = await (this.prisma as any).post.create({
       data: {
         userId: user.id,
+        tenantId: tenantId,
         content: dto.content ?? null,
         mediaUrls: dto.mediaUrls ?? [],
         networks: dto.networks,
@@ -50,8 +53,8 @@ export class PostsService {
     return post;
   }
 
-  async list(email: string, params: ListParams) {
-    const user = await this.getUserByEmail(email);
+  async list(email: string, params: ListParams, tenantId: string) {
+    const user = await this.getUserByEmail(email, tenantId);
     const where: any = { userId: user.id };
     if (params.status) where.status = params.status;
     if (params.from || params.to) {
@@ -67,15 +70,15 @@ export class PostsService {
     return { items, total, page: params.page, pageSize: params.pageSize };
   }
 
-  async get(email: string, id: string) {
-    const user = await this.getUserByEmail(email);
+  async get(email: string, id: string, tenantId: string) {
+    const user = await this.getUserByEmail(email, tenantId);
     const post = await this.prisma.post.findFirst({ where: { id, userId: user.id } });
     if (!post) throw new NotFoundException('Post não encontrado');
     return post;
   }
 
-  async update(email: string, id: string, dto: any) {
-    const user = await this.getUserByEmail(email);
+  async update(email: string, id: string, dto: any, tenantId: string) {
+    const user = await this.getUserByEmail(email, tenantId);
     const post = await this.prisma.post.findFirst({ where: { id, userId: user.id } });
     if (!post) throw new NotFoundException('Post não encontrado');
     if (post.status !== 'pending') throw new ForbiddenException('Somente posts pendentes podem ser editados');
@@ -91,8 +94,8 @@ export class PostsService {
     });
   }
 
-  async remove(email: string, id: string) {
-    const user = await this.getUserByEmail(email);
+  async remove(email: string, id: string, tenantId: string) {
+    const user = await this.getUserByEmail(email, tenantId);
     const post = await this.prisma.post.findFirst({ where: { id, userId: user.id } });
     if (!post) throw new NotFoundException('Post não encontrado');
     if (post.status !== 'pending') throw new ForbiddenException('Somente posts pendentes podem ser removidos');
@@ -102,8 +105,8 @@ export class PostsService {
     return { deleted: true };
   }
 
-  async publishes(email: string, id: string) {
-    const user = await this.getUserByEmail(email);
+  async publishes(email: string, id: string, tenantId: string) {
+    const user = await this.getUserByEmail(email, tenantId);
     const post = await this.prisma.post.findFirst({ where: { id, userId: user.id } });
     if (!post) throw new NotFoundException('Post não encontrado');
 
@@ -121,8 +124,8 @@ export class PostsService {
     });
   }
 
-  async cancel(email: string, id: string) {
-    const user = await this.getUserByEmail(email);
+  async cancel(email: string, id: string, tenantId: string) {
+    const user = await this.getUserByEmail(email, tenantId);
     const post = await this.prisma.post.findFirst({ where: { id, userId: user.id } });
     if (!post) throw new NotFoundException('Post não encontrado');
     if (post.status !== 'pending') throw new ForbiddenException('Somente posts pendentes podem ser cancelados');
@@ -134,8 +137,8 @@ export class PostsService {
     return { canceled: true };
   }
 
-  async publishNow(email: string, id: string) {
-    const user = await this.getUserByEmail(email);
+  async publishNow(email: string, id: string, tenantId: string) {
+    const user = await this.getUserByEmail(email, tenantId);
     const post = await this.prisma.post.findFirst({ where: { id, userId: user.id } });
     if (!post) throw new NotFoundException('Post não encontrado');
     if (post.status !== 'pending') throw new ForbiddenException('Somente posts pendentes podem ser publicados agora');
@@ -150,8 +153,8 @@ export class PostsService {
     return { enqueued: publishes.map((p) => p.provider) };
   }
 
-  async retryPublish(email: string, id: string, publishId: string) {
-    const user = await this.getUserByEmail(email);
+  async retryPublish(email: string, id: string, publishId: string, tenantId: string) {
+    const user = await this.getUserByEmail(email, tenantId);
     const post = await this.prisma.post.findFirst({ where: { id, userId: user.id } });
     if (!post) throw new NotFoundException('Post não encontrado');
 

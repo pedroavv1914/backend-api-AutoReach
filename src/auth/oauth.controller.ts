@@ -1,19 +1,26 @@
-import { Controller, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
-import { OAuthService } from './oauth.service';
+import { Controller, Post, Body, HttpException, HttpStatus, Req } from '@nestjs/common';
+import { Request } from 'express';
+import { TenantOAuthService } from './tenant-oauth.service';
 import { LinkedInAuthDto, InstagramAuthDto } from './dto/oauth.dto';
 
 @Controller('auth')
 export class OAuthController {
-  constructor(private readonly oauthService: OAuthService) {}
+  constructor(private readonly tenantOAuthService: TenantOAuthService) {}
 
   @Post('linkedin')
-  async linkedinCallback(@Body() dto: LinkedInAuthDto) {
+  async linkedinCallback(@Body() dto: LinkedInAuthDto, @Req() req: Request) {
     try {
-      const result = await this.oauthService.handleLinkedInCallback(dto.code, dto.state);
+      // Use tenant-specific OAuth service
+      const result = await this.tenantOAuthService.handleLinkedInCallback(
+        dto.code, 
+        dto.state || '', 
+        req.tenantId!
+      );
       return {
         success: true,
-        message: 'LinkedIn account connected successfully',
+        message: result.message,
         data: result,
+        tenant: req.tenant?.name,
       };
     } catch (error: any) {
       throw new HttpException(
@@ -27,13 +34,19 @@ export class OAuthController {
   }
 
   @Post('instagram')
-  async instagramCallback(@Body() dto: InstagramAuthDto) {
+  async instagramCallback(@Body() dto: InstagramAuthDto, @Req() req: Request) {
     try {
-      const result = await this.oauthService.handleInstagramCallback(dto.code, dto.state);
+      // Use tenant-specific OAuth service
+      const result = await this.tenantOAuthService.handleInstagramCallback(
+        dto.code, 
+        dto.state || '', 
+        req.tenantId!
+      );
       return {
         success: true,
-        message: 'Instagram account connected successfully',
+        message: result.message,
         data: result,
+        tenant: req.tenant?.name,
       };
     } catch (error: any) {
       throw new HttpException(
