@@ -2,15 +2,16 @@ import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import axios from 'axios';
 
-// Mock ConfigService since @nestjs/config is not installed
-class MockConfigService {
+// ConfigService with environment variables
+class ConfigService {
   get(key: string): string {
+    // Replace with your real credentials
     const envVars: Record<string, string> = {
-      LINKEDIN_CLIENT_ID: 'your-linkedin-client-id',
-      LINKEDIN_CLIENT_SECRET: 'your-linkedin-client-secret',
+      LINKEDIN_CLIENT_ID: process.env.LINKEDIN_CLIENT_ID || 'your-linkedin-client-id',
+      LINKEDIN_CLIENT_SECRET: process.env.LINKEDIN_CLIENT_SECRET || 'your-linkedin-client-secret',
       LINKEDIN_REDIRECT_URI: 'http://localhost:3001/auth/linkedin/callback',
-      INSTAGRAM_CLIENT_ID: 'your-instagram-client-id',
-      INSTAGRAM_CLIENT_SECRET: 'your-instagram-client-secret',
+      INSTAGRAM_CLIENT_ID: process.env.INSTAGRAM_CLIENT_ID || 'your-instagram-client-id',
+      INSTAGRAM_CLIENT_SECRET: process.env.INSTAGRAM_CLIENT_SECRET || 'your-instagram-client-secret',
       INSTAGRAM_REDIRECT_URI: 'http://localhost:3001/auth/instagram/callback',
     };
     return envVars[key] || '';
@@ -19,7 +20,7 @@ class MockConfigService {
 
 @Injectable()
 export class OAuthService {
-  private readonly config = new MockConfigService();
+  private readonly config = new ConfigService();
   
   constructor(
     private readonly prisma: PrismaService,
