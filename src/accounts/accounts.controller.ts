@@ -1,25 +1,44 @@
-import { Body, Controller, Delete, Get, Param, Post, UseGuards, Req } from '@nestjs/common';
-import { AccountsService } from './accounts.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Controller, Get, Delete, Param } from '@nestjs/common';
+import { OAuthService } from '../auth/oauth.service';
 
-@UseGuards(JwtAuthGuard)
 @Controller('accounts')
 export class AccountsController {
-  constructor(private readonly accountsService: AccountsService) {}
+  constructor(private readonly oauthService: OAuthService) {}
 
   @Get()
-  list(@Req() req: any) {
-    return this.accountsService.list(req.user.email);
+  async getConnectedAccounts() {
+    // Using mock user ID since auth is disabled
+    const mockUserId = 'mock-user-id';
+    const accounts = await this.oauthService.getConnectedAccounts(mockUserId);
+    
+    return {
+      success: true,
+      data: accounts.map(account => ({
+        id: account.id,
+        provider: account.provider,
+        externalId: account.externalId,
+        status: 'connected',
+        connectedAt: account.createdAt,
+      })),
+    };
   }
 
-  // Endpoint utilitário para conectar conta manualmente (até termos OAuth real)
-  @Post()
-  connect(@Req() req: any, @Body() body: { provider: string; accessToken: string; refreshToken?: string; expiresAt?: string; externalId?: string }) {
-    return this.accountsService.connect(req.user.email, body);
-  }
-
-  @Delete(':id')
-  remove(@Req() req: any, @Param('id') id: string) {
-    return this.accountsService.remove(req.user.email, id);
+  @Delete(':provider')
+  async disconnectAccount(@Param('provider') provider: string) {
+    // Using mock user ID since auth is disabled
+    const mockUserId = 'mock-user-id';
+    
+    try {
+      await this.oauthService.disconnectAccount(mockUserId, provider);
+      return {
+        success: true,
+        message: `${provider} account disconnected successfully`,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || 'Failed to disconnect account',
+      };
+    }
   }
 }
